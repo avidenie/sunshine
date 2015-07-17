@@ -1,9 +1,12 @@
 package ro.expectations.sunshine;
 
 import android.app.Fragment;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.text.format.Time;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -12,8 +15,10 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -27,8 +32,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 
 public class ForecastFragment extends Fragment {
@@ -49,36 +52,41 @@ public class ForecastFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-
-        String[] forecastArray = {
-                "Tomorrow - Foggy - 70/46",
-                "Tuesday - Cloudy - 72/63",
-                "Today - Sunny - 88/63",
-                "Wednesday - Sunny - 88/63",
-                "Thursday - Rainy - 88/63",
-                "Friday - Foggy - 88/63",
-                "Saturday - Foggy - 88/63"
-        };
-        List<String> weekForecast = new ArrayList<>(Arrays.asList(forecastArray));
+        View rootView = inflater.inflate(R.layout.fragment_forecast, container, false);
 
         mForecastAdapter = new ArrayAdapter<>(
                 getActivity(),
                 R.layout.list_item_forecast,
                 R.id.list_item_forecast_textview,
-                weekForecast
+                new ArrayList()
         );
 
         ListView listView = (ListView) rootView.findViewById(R.id.listview_forecast);
         listView.setAdapter(mForecastAdapter);
 
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                String forecastData = mForecastAdapter.getItem(position);
+                Intent intent = new Intent(getActivity(), DetailActivity.class);
+                intent.putExtra(Intent.EXTRA_TEXT, forecastData);
+                startActivity(intent);
+            }
+        });
+
         return rootView;
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        updateWeather();
     }
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater menuInflater) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.forecastfragment, menu);
+        menuInflater.inflate(R.menu.forecast_fragment, menu);
     }
 
     @Override
@@ -88,11 +96,35 @@ public class ForecastFragment extends Fragment {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         if (id == R.id.action_refresh) {
-            new FetchWeatherTask().execute("Iasi,RO");
+            updateWeather();
+            return true;
+        } else if (id == R.id.action_show_location) {
+            Uri geoLocation = Uri.parse("geo:0,0").buildUpon()
+                    .appendQueryParameter("q", getLocation())
+                    .build();
+            Intent intent = new Intent(Intent.ACTION_VIEW, geoLocation);
+            if (intent.resolveActivity(getActivity().getPackageManager()) != null) {
+                startActivity(intent);
+            } else {
+                Toast.makeText(getActivity(),
+                        getString(R.string.show_location_no_default_application),
+                        Toast.LENGTH_SHORT).show();
+            }
             return true;
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void updateWeather() {
+        new FetchWeatherTask().execute(getLocation());
+    }
+
+    private String getLocation() {
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String location = sharedPref.getString(getString(R.string.pref_location_key),
+                getString(R.string.pref_location_default));
+        return location;
     }
 
     public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
@@ -114,6 +146,17 @@ public class ForecastFragment extends Fragment {
          * Prepare the weather high/lows for presentation.
          */
         private String formatHighLows(double high, double low) {
+            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getActivity());
+            String temperatureType = sharedPref.getString(getString(R.string.pref_temperature_key),
+                    getString(R.string.pref_temperature_celsius));
+
+            if (temperatureType.equals(getString(R.string.pref_temperature_fahrenheit))) {
+                high = 9 * high / 5 + 32;
+                low = 9 * low / 5 + 32;
+            } else if (!temperatureType.equals(getString(R.string.pref_temperature_celsius))) {
+                Log.e(LOG_TAG, "Temperature type not found: " + temperatureType);
+            }
+
             // For presentation, assume the user doesn't care about tenths of a degree.
             long roundedHigh = Math.round(high);
             long roundedLow = Math.round(low);
