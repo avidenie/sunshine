@@ -2,13 +2,14 @@ package ro.expectations.sunshine;
 
 import android.content.Intent;
 import android.database.Cursor;
-import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.widget.ShareActionProvider;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -48,13 +49,13 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
             LocationEntry.COLUMN_LOCATION_SETTING
     };
 
-    // these constants correspond to the projection defined above, and must change if the
-    // projection changes
-    private static final int COL_WEATHER_ID = 0;
-    private static final int COL_WEATHER_DATE = 1;
-    private static final int COL_WEATHER_DESC = 2;
-    private static final int COL_WEATHER_MAX_TEMP = 3;
-    private static final int COL_WEATHER_MIN_TEMP = 4;
+    // These indices are tied to DETAIL_COLUMNS.  If DETAIL_COLUMNS changes, these
+    // must change.
+    public static final int COL_WEATHER_ID = 0;
+    public static final int COL_WEATHER_DATE = 1;
+    public static final int COL_WEATHER_DESC = 2;
+    public static final int COL_WEATHER_MAX_TEMP = 3;
+    public static final int COL_WEATHER_MIN_TEMP = 4;
     public static final int COL_WEATHER_HUMIDITY = 5;
     public static final int COL_WEATHER_PRESSURE = 6;
     public static final int COL_WEATHER_WIND_SPEED = 7;
@@ -72,19 +73,7 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
     private TextView mPressureView;
 
     public DetailFragment() {
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
         setHasOptionsMenu(true);
-    }
-
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        getLoaderManager().initLoader(DETAIL_LOADER, null, this);
-        super.onActivityCreated(savedInstanceState);
     }
 
     @Override
@@ -104,16 +93,17 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
     }
 
     @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater menuInflater) {
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.detail_fragment, menu);
+        inflater.inflate(R.menu.detailfragment, menu);
 
-        // Retrieve the share menu.
+        // Retrieve the share menu item
         MenuItem menuItem = menu.findItem(R.id.action_share);
 
         // Get the provider and hold onto it to set/change the share intent.
         mShareActionProvider = (ShareActionProvider) MenuItemCompat.getActionProvider(menuItem);
 
+        // If onLoadFinished happens before this, we can go ahead and set the share intent now.
         if (mForecast != null) {
             mShareActionProvider.setShareIntent(createShareForecastIntent());
         }
@@ -121,17 +111,23 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
 
     private Intent createShareForecastIntent() {
         Intent shareIntent = new Intent(Intent.ACTION_SEND);
-        shareIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+        shareIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
         shareIntent.setType("text/plain");
         shareIntent.putExtra(Intent.EXTRA_TEXT, mForecast + FORECAST_SHARE_HASHTAG);
         return shareIntent;
     }
 
     @Override
-    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+    public void onActivityCreated(Bundle savedInstanceState) {
+        getLoaderManager().initLoader(DETAIL_LOADER, null, this);
+        super.onActivityCreated(savedInstanceState);
+    }
 
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        Log.v(LOG_TAG, "In onCreateLoader");
         Intent intent = getActivity().getIntent();
-        if (intent == null) {
+        if (intent == null || intent.getData() == null) {
             return null;
         }
 
@@ -204,7 +200,5 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
     }
 
     @Override
-    public void onLoaderReset(Loader<Cursor> loader) {
-
-    }
+    public void onLoaderReset(Loader<Cursor> loader) { }
 }

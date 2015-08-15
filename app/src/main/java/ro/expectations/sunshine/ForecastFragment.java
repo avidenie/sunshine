@@ -1,13 +1,13 @@
 package ro.expectations.sunshine;
 
-import android.app.Fragment;
-import android.app.LoaderManager;
-import android.content.CursorLoader;
 import android.content.Intent;
-import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -16,7 +16,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
-import android.widget.Toast;
 
 import ro.expectations.sunshine.data.WeatherContract;
 
@@ -24,7 +23,8 @@ import ro.expectations.sunshine.data.WeatherContract;
 public class ForecastFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
 
     private static final int FORECAST_LOADER = 0;
-
+    // For the forecast view we're showing only a small subset of the stored data.
+    // Specify the columns we need.
     private static final String[] FORECAST_COLUMNS = {
             WeatherContract.WeatherEntry.TABLE_NAME + "." + WeatherContract.WeatherEntry._ID,
             WeatherContract.WeatherEntry.COLUMN_DATE,
@@ -57,14 +57,26 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        // Add this line in order for this fragment to handle menu events.
         setHasOptionsMenu(true);
     }
 
     @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        getLoaderManager().initLoader(FORECAST_LOADER, null, this);
-        super.onActivityCreated(savedInstanceState);
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.forecastfragment, menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+        if (id == R.id.action_refresh) {
+            updateWeather();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -74,7 +86,7 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
         // The CursorAdapter will take data from our cursor and populate the ListView
         mForecastAdapter = new ForecastAdapter(getActivity(), null, 0);
 
-        View rootView = inflater.inflate(R.layout.fragment_forecast, container, false);
+        View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
         ListView listView = (ListView) rootView.findViewById(R.id.listview_forecast);
         listView.setAdapter(mForecastAdapter);
@@ -82,7 +94,7 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
             @Override
-            public void onItemClick(AdapterView adapterView, View view, int position, long l) {
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
                 // CursorAdapter returns a cursor at the correct position for getItem(), or null
                 // if it cannot seek to that position.
                 Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
@@ -96,47 +108,32 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
                 }
             }
         });
-
         return rootView;
     }
 
     @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater menuInflater) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.forecast_fragment, menu);
+    public void onActivityCreated(Bundle savedInstanceState) {
+        getLoaderManager().initLoader(FORECAST_LOADER, null, this);
+        super.onActivityCreated(savedInstanceState);
+    }
+
+    // since we read the location when we create the loader, all we need to do is restart things
+    void onLocationChanged( ) {
+        updateWeather();
+        getLoaderManager().restartLoader(FORECAST_LOADER, null, this);
+    }
+
+    private void updateWeather() {
+        FetchWeatherTask weatherTask = new FetchWeatherTask(getActivity());
+        String location = Utility.getPreferredLocation(getActivity());
+        weatherTask.execute(location);
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        if (id == R.id.action_refresh) {
-            updateWeather();
-            return true;
-        } else if (id == R.id.action_show_location) {
-            Uri geoLocation = Uri.parse("geo:0,0").buildUpon()
-                    .appendQueryParameter("q", Utility.getPreferredLocation(getActivity()))
-                    .build();
-            Intent intent = new Intent(Intent.ACTION_VIEW, geoLocation);
-            if (intent.resolveActivity(getActivity().getPackageManager()) != null) {
-                startActivity(intent);
-            } else {
-                Toast.makeText(getActivity(),
-                        getString(R.string.show_location_no_default_application),
-                        Toast.LENGTH_SHORT).show();
-            }
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-
+    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
         String locationSetting = Utility.getPreferredLocation(getActivity());
+
+        // Sort order:  Ascending, by date.
         String sortOrder = WeatherContract.WeatherEntry.COLUMN_DATE + " ASC";
         Uri weatherForLocationUri = WeatherContract.WeatherEntry.buildWeatherLocationWithStartDate(
                 locationSetting, System.currentTimeMillis());
@@ -157,17 +154,5 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
         mForecastAdapter.swapCursor(null);
-    }
-
-    // since we read the location when we create the loader, all we need to do is restart things
-    void onLocationChanged( ) {
-        updateWeather();
-        getLoaderManager().restartLoader(FORECAST_LOADER, null, this);
-    }
-
-    private void updateWeather() {
-        FetchWeatherTask weatherTask = new FetchWeatherTask(getActivity());
-        String location = Utility.getPreferredLocation(getActivity());
-        weatherTask.execute(location);
     }
 }

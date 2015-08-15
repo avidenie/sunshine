@@ -1,27 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:xliff="http://schemas.android.com/apk/res-auto">
+
+    <!--
+         Used in Action Bar, and in AndroidManifest to tell the device the name of this app.
+         It's to keep this short, so your launcher icon isn't displayed with "The greatest Wea"
+         or something similar.
+    -->
     <string name="app_name">Sunshine</string>
+
+    <!--
+         By convention, "action" denotes that this String will be used as the label for an Action,
+         typically from the action bar.  The ActionBar is limited real estate, so shorter is better.
+    -->
     <string name="action_settings">Settings</string>
-    <string name="action_refresh" translateable="false">Refresh</string>
-    <string name="title_activity_details">Forecast Details</string>
-    <string name="title_activity_settings">Settings</string>
-    <string name="pref_location_label">Location</string>
-    <string name="pref_location_key" translatable="false">location</string>
-    <string name="pref_location_default" translatable="false">Iasi, RO</string>
-    <string name="pref_temperature_label">Temperature</string>
-    <string name="pref_temperature_key" translatable="false">temperature</string>
-    <string name="pref_temperature_celsius" translatable="false">celsius</string>
-    <string name="pref_temperature_fahrenheit" translatable="false">fahrenheit</string>
-    <string name="menu_show_location">Show Location</string>
-    <string name="show_location_no_default_application">No application capable of showing location installed</string>
+    <string name="action_map">Map Location</string>
     <string name="action_share">Share</string>
-    <string-array name="pref_temperature_titles">
-        <item>Celsius</item>
-        <item>Fahrenheit</item>
-    </string-array>
-    <string-array name="pref_temperature_values">
-        <item>celsius</item>
-        <item>fahrenheit</item>
-    </string-array>
+
+    <!-- Menu label to fetch updated weather info from the server -->
+    <string name="action_refresh" translatable="false">Refresh</string>
+    <string name="title_activity_detail">Details</string>
+    <string name="title_activity_settings">Settings</string>
+
+    <!-- Label for the location preference [CHAR LIMIT=30] -->
+    <string name="pref_location_label">Location</string>
+
+    <!-- Key name for storing location in SharedPreferences [CHAR LIMIT=NONE] -->
+    <string name="pref_location_key" translatable="false">location</string>
+
+    <!-- Default postal code for location preference [CHAR LIMIT=NONE] -->
+    <string name="pref_location_default" translatable="false">Iasi, RO</string>
+
+    <!-- Label for the temperature units preference [CHAR LIMIT=30] -->
+    <string name="pref_units_label">Temperature Units</string>
+
+    <!-- Label for metric option in temperature unit preference [CHAR LIMIT=25] -->
+    <string name="pref_units_label_metric">Metric</string>
+
+    <!-- Label for imperial option in temperature unit preference [CHAR LIMIT=25] -->
+    <string name="pref_units_label_imperial">Imperial</string>
+
+    <!-- Key name for temperature unit preference in SharedPreferences [CHAR LIMIT=NONE] -->
+    <string name="pref_units_key" translatable="false">units</string>
+
+    <!-- Value in SharedPreferences for metric temperature unit option [CHAR LIMIT=NONE] -->
+    <string name="pref_units_metric" translatable="false">metric</string>
+
+    <!-- Value in SharedPreferences for imperial temperature unit option [CHAR LIMIT=NONE] -->
+    <string name="pref_units_imperial" translatable="false">imperial</string>
+
 
     <!-- Date label when displaying today's weather forecast [CHAR LIMIT=20] -->
     <string name="today">Today</string>
@@ -39,7 +65,6 @@
     <!-- Windspeed formats -->
     <!-- Wind in mph [CHAR LIMIT=25] -->
     <string name="format_wind_mph">Wind: <xliff:g id="speed">%1$1.0f</xliff:g> mph <xliff:g id="direction">%2$s</xliff:g></string>
-
     <!-- Wind in kph [CHAR LIMIT=25] -->
     <string name="format_wind_kmh">Wind: <xliff:g id="speed">%1$1.0f</xliff:g> km/h <xliff:g id="direction">%2$s</xliff:g></string>
 
@@ -48,4 +73,5 @@
 
     <!-- Humidity format CHAR LIMIT=25]-->
     <string name="format_humidity">Humidity: <xliff:g id="humidity">%1.0f</xliff:g> %%</string>
+
 </resources>

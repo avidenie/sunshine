@@ -3,15 +3,11 @@ package ro.expectations.sunshine;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.database.DatabaseUtils;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.preference.PreferenceManager;
 import android.text.format.Time;
 import android.util.Log;
-import android.widget.ArrayAdapter;
 
 import ro.expectations.sunshine.data.WeatherContract;
 import ro.expectations.sunshine.data.WeatherContract.WeatherEntry;
@@ -26,8 +22,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Vector;
 
 public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
@@ -60,30 +54,35 @@ public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
                 new String[]{WeatherContract.LocationEntry._ID},
                 WeatherContract.LocationEntry.COLUMN_LOCATION_SETTING + " = ?",
                 new String[]{locationSetting},
-                null
-        );
+                null);
 
         if (locationCursor.moveToFirst()) { // If it exists, return the current ID
             int locationIdIndex = locationCursor.getColumnIndex(WeatherContract.LocationEntry._ID);
             locationId = locationCursor.getLong(locationIdIndex);
         } else {
+            // Now that the content provider is set up, inserting rows of data is pretty simple.
+            // First create a ContentValues object to hold the data you want to insert.
             ContentValues locationValues = new ContentValues();
 
+            // Then add the data, along with the corresponding name of the data type,
+            // so the content provider knows what kind of value is being inserted.
             locationValues.put(WeatherContract.LocationEntry.COLUMN_CITY_NAME, cityName);
             locationValues.put(WeatherContract.LocationEntry.COLUMN_LOCATION_SETTING, locationSetting);
             locationValues.put(WeatherContract.LocationEntry.COLUMN_COORD_LAT, lat);
             locationValues.put(WeatherContract.LocationEntry.COLUMN_COORD_LONG, lon);
 
+            // Finally, insert location data into the database.
             Uri insertedUri = mContext.getContentResolver().insert(
                     WeatherContract.LocationEntry.CONTENT_URI,
                     locationValues
             );
 
+            // The resulting URI contains the ID for the row.  Extract the locationId from the Uri.
             locationId = ContentUris.parseId(insertedUri);
         }
 
         locationCursor.close();
-
+        // Wait, that worked?  Yes!
         return locationId;
     }
 
@@ -221,10 +220,9 @@ public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
 
             // add to database
             if ( cVVector.size() > 0 ) {
-                inserted = mContext.getContentResolver().bulkInsert(
-                        WeatherEntry.CONTENT_URI,
-                        cVVector.toArray(new ContentValues[cVVector.size()])
-                );
+                ContentValues[] cvArray = new ContentValues[cVVector.size()];
+                cVVector.toArray(cvArray);
+                inserted = mContext.getContentResolver().bulkInsert(WeatherEntry.CONTENT_URI, cvArray);
             }
 
             Log.d(LOG_TAG, "FetchWeatherTask Complete. " + inserted + " Inserted");
@@ -308,7 +306,6 @@ public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
             Log.e(LOG_TAG, "Error ", e);
             // If the code didn't successfully get the weather data, there's no point in attempting
             // to parse it.
-            return null;
         } catch (JSONException e) {
             Log.e(LOG_TAG, e.getMessage(), e);
             e.printStackTrace();
@@ -324,7 +321,6 @@ public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
                 }
             }
         }
-
         return null;
     }
 }
