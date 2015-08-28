@@ -20,6 +20,8 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
+
 import ro.expectations.sunshine.data.WeatherContract;
 import ro.expectations.sunshine.data.WeatherContract.LocationEntry;
 import ro.expectations.sunshine.data.WeatherContract.WeatherEntry;
@@ -166,10 +168,14 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
         if (data != null && data.moveToFirst()) {
 
             // Read weather condition ID from cursor
-            int conditionId = data.getInt(COL_WEATHER_CONDITION_ID);
+            int weatherId = data.getInt(COL_WEATHER_CONDITION_ID);
 
             // Use weather art image
-            mIconView.setImageResource(Utility.getArtResourceForWeatherCondition(conditionId));
+            Glide.with(this)
+                    .load(Utility.getArtUrlForWeatherCondition(getActivity(), weatherId))
+                    .error(Utility.getArtResourceForWeatherCondition(weatherId))
+                    .crossFade()
+                    .into(mIconView);
 
             // Read date from cursor and update views for day of week and date
             long date = data.getLong(COL_WEATHER_DATE);
@@ -179,7 +185,7 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
             mDateView.setText(dateText);
 
             // Get description from weather condition ID
-            String description = Utility.getStringForWeatherCondition(getActivity(), conditionId);
+            String description = Utility.getStringForWeatherCondition(getActivity(), weatherId);
             mDescriptionView.setText(description);
             mDescriptionView.setContentDescription(getString(R.string.a11y_forecast, description));
 
